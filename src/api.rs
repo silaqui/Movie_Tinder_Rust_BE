@@ -1,47 +1,64 @@
-use rocket::Route;
+use std::sync::atomic::Ordering;
+
+use rocket::{Route, State};
+use rocket::http::{Cookie, CookieJar};
 use rocket::serde::json::Json;
 
 use model::Movie;
-
-use crate::model;
+use crate::{HitCount, model, movie_db};
 
 pub const BASE: &str = "/api";
 
-#[get("/start")]
-fn start() {
+fn generate_user_id(i: usize) -> String {
+    format!("guest_{}", i)
+}
 
+fn generate_session_id(_: usize) -> String {
+    format!("session_1")
+}
+
+fn get_or_set_user_id(cookies: &CookieJar<'_>, name: &str, generate_fn: fn(usize) -> String, i: usize) -> String {
+    return match cookies.get(name) {
+        None => {
+            let id = generate_fn(i);
+            log::info!("Missing {}, setting to: {}",name, id);
+            cookies.add(
+                Cookie::new(String::from(name), id.clone())
+            );
+            id
+        }
+        Some(id) => {
+            log::info!("{} present: {}", name, id.value());
+            id.value().clone().into()
+        }
+    };
+}
+
+#[get("/start")]
+fn start(cookies: &CookieJar<'_>, hit_count: &State<HitCount>) -> Json<Movie> {
+    let count = hit_count.0.fetch_add(1, Ordering::Relaxed) + 1;
+
+    get_or_set_user_id(&cookies, "user_id", generate_user_id, count);
+    get_or_set_user_id(&cookies, "session_id", generate_session_id, count);
+
+    Json(movie_db::get_movie(count))
 }
 
 #[get("/movie")]
-fn movies() -> Json<Movie> {
-    let _list = vec![
-        Movie {
-            id: "1".into(),
-            title: "Inception".into(),
-            genres: vec!["Action".into(), "Adventure".into(), "Sci-Fi".into()],
-            description: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O., but his tragic past may doom the project and his team to disaster.".into(),
-            poster_url: "https://cdn.shopify.com/s/files/1/0037/8008/3782/products/inception_advance_SD18120_B_2_framed1_57a8f726-e4da-4a60-877b-95b210b8fc91-367857.jpg?v=1611688027".into(),
-        },
-        Movie {
-            id: "2".into(),
-            title: "The Shawshank Redemption".into(),
-            genres: vec!["Drama".into()],
-            description: "Over the course of several years, two convicts form a friendship, seeking consolation and, eventually, redemption through basic compassion.".into(),
-            poster_url: "https://i.etsystatic.com/16821137/r/il/c8b3e3/1879586236/il_570xN.1879586236_kdtm.jpg".into(),
-        },
-    ];
+fn movies(cookies: &CookieJar<'_>, hit_count: &State<HitCount>) -> Json<Movie> {
+    let count = hit_count.0.fetch_add(1, Ordering::Relaxed) + 1;
 
-    let movie = Movie {
-        id: "2".into(),
-        title: "The Shawshank Redemption".into(),
-        genres: vec!["Drama".into()],
-        description: "Over the course of several years, two convicts form a friendship, seeking consolation and, eventually, redemption through basic compassion.".into(),
-        poster_url: "https://i.etsystatic.com/16821137/r/il/c8b3e3/1879586236/il_570xN.1879586236_kdtm.jpg".into(),
-    };
+    get_or_set_user_id(&cookies, "user_id", generate_user_id, count);
+    get_or_set_user_id(&cookies, "session_id", generate_session_id, count);
 
-    Json(movie)
+    Json(movie_db::get_movie(count))
+}
+
+#[get("/clean")]
+fn clear(cookies: &CookieJar<'_>) {
+    cookies.remove(Cookie::named("session_id"));
 }
 
 pub fn routes() -> Vec<Route> {
-    routes![start, movies]
+    routes![start, movies, clear]
 }

@@ -1,6 +1,7 @@
+use std::sync::atomic::AtomicUsize;
 use rocket::serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(crate = "rocket::serde")]
 pub struct Movie {
     pub id: String,
@@ -9,3 +10,18 @@ pub struct Movie {
     pub description: String,
     pub poster_url: String,
 }
+
+pub struct MovieDetails {
+    pub title: String,
+    pub position: String,
+    pub year: i32,
+    pub certificate: String,
+    pub runtime: String,
+    pub genre: Vec<String>,
+    pub description: String,
+    pub director: Vec<String>,
+    pub stars: Vec<String>,
+    pub poster_url: String,
+}
+
+pub struct HitCount(pub AtomicUsize);
