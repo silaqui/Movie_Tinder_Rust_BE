@@ -1,12 +1,11 @@
+mod service;
+
 #[macro_use]
 extern crate rocket;
 
 use std::sync::atomic::AtomicUsize;
-use model::HitCount;
-
-mod api;
-mod model;
-mod movie_db;
+use crate::service::api;
+use crate::service::model::HitCount;
 
 #[main]
 async fn main() {

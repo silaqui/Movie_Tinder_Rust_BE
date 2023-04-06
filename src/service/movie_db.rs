@@ -1,4 +1,4 @@
-use crate::model::{Movie, MovieDetails};
+use crate::service::model::{Movie, MovieDetails};
 
 pub fn get_movie(index: usize) -> Movie {
     let movies = vec![

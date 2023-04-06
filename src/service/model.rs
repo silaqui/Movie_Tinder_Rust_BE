@@ -1,7 +1,8 @@
 use std::sync::atomic::AtomicUsize;
 use rocket::serde::Serialize;
+use rocket::serde::Deserialize;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct Movie {
     pub id: String,
@@ -25,3 +26,25 @@ pub struct MovieDetails {
 }
 
 pub struct HitCount(pub AtomicUsize);
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct Vote{
+    pub result : String,
+    pub movie_id : String,
+}
+
+pub struct VoteResult{
+    pub is_match: bool,
+    pub movie: Movie,
+}
+
+#[derive(Debug)]
+pub struct Session {
+    pub session_id : String,
+    pub is_match: bool,
+    pub movie: Movie,
+}
+
+#[derive(Debug)]
+pub struct UserId(pub String);
