@@ -1,40 +1,33 @@
 use rocket::{Route, State};
 use rocket::http::{Cookie, CookieJar};
 use rocket::serde::json::Json;
-use crate::service::model::{HitCount, Movie, Session, Vote, VoteResult};
+
 use crate::service::{movie_db, session, user};
+use crate::service::model::{HitCount, Movie, Session, Sessions, UserId, Vote, VoteResult};
 
 pub const BASE: &str = "/api";
 
 #[get("/start")]
-fn start(cookies: &CookieJar<'_>, hit_count: &State<HitCount>) -> Json<Session> {
-    let user_id = user::identify_user(cookies, hit_count);
-
+fn start(user_id: UserId, sessions: &State<Sessions>) -> Json<Session> {
     log::info!("Start session - user: {:?}", user_id);
 
-    Json(session::start(&user_id))
+    Json(session::start(&user_id, &sessions))
 }
 
 #[get("/join/<session_id>")]
-fn join(cookies: &CookieJar<'_>, hit_count: &State<HitCount>, session_id: String) -> Json<Session> {
-
-    let user_id = user::identify_user(cookies, hit_count);
-
+fn join(user_id: UserId, sessions: &State<Sessions>, session_id: String) -> Json<Session> {
     log::info!("Join session - user: {:?} - session: {}", user_id, session_id);
 
-    Json(session::join(&user_id, &session_id))
+    Json(session::join(&user_id, &session_id, &sessions))
 }
 
-#[post("/vote/<session_id>" , format = "json", data = "<vote>" )]
-fn vote(cookies: &CookieJar<'_>, hit_count: &State<HitCount>, session_id: String, vote: Json<Vote>) -> Json<VoteResult> {
+#[post("/vote/<session_id>", format = "json", data = "<vote>")]
+fn vote(user_id: UserId, sessions: &State<Sessions>, session_id: String, vote: Json<Vote>) -> Json<VoteResult> {
+    let vote: Vote = vote.0;
 
-    let user_id = user::identify_user(cookies, hit_count);
+    log::info!("Vote session - user: {:?} - session: {:?} - vote: {:?}", user_id, session_id, vote);
 
-    let vote : Vote = vote.0;
-
-    log::info!("Join session - user: {:?} - session: {:?} - vote: {:?}", user_id, session_id, vote);
-
-    Json(session::vote(&user_id, &session_id, vote))
+    Json(session::vote(&user_id, &session_id, vote, &sessions))
 }
 
 #[get("/movie")]
