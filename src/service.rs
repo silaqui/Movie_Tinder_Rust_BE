@@ -1,4 +1,3 @@
-pub mod model;
 pub mod movie_db;
 pub mod api;
 pub mod user;

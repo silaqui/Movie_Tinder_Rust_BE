@@ -1,4 +1,4 @@
-use crate::service::model::{Movie, MovieDetails};
+use crate::model::movie::{Movie, MovieDetails};
 
 pub fn get_movie(index: usize) -> Movie {
     let movies = vec![
@@ -19,21 +19,21 @@ pub fn get_movie(index: usize) -> Movie {
         Movie {
             id: "3".into(),
             title: "The Dark Knight".into(),
-            genres: vec!["Action".into(),"Crime".into(),"Drama".into(),],
+            genres: vec!["Action".into(), "Crime".into(), "Drama".into()],
             description: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.".into(),
             poster_url: "https://media.wired.com/photos/5932936052d99d6b984df845/master/w_2560%2Cc_limit/dark-knight-poster.jpg".into(),
         },
         Movie {
             id: "4".into(),
             title: "Schindler's List".into(),
-            genres: vec!["Biography".into(),"Drama".into(),"History".into()],
+            genres: vec!["Biography".into(), "Drama".into(), "History".into()],
             description: "In German-occupied Poland during World War II, industrialist Oskar Schindler gradually becomes concerned for his Jewish workforce after witnessing their persecution by the Nazis.".into(),
             poster_url: "https://images.fandango.com/ImageRenderer/0/0/redesign/static/img/default_poster.png/0/images/masterrepository/Fandango/215803/SCHINDLERS-LIST-TEASER-ONE-SHEET-27x40.jpg".into(),
         },
         Movie {
             id: "5".into(),
             title: "12 Angry Men".into(),
-            genres: vec!["Crime".into(),"Drama".into()],
+            genres: vec!["Crime".into(), "Drama".into()],
             description: "The jury in a New York City murder trial is frustrated by a single member whose skeptical caution forces them to more carefully consider the evidence before jumping to a hasty verdict.".into(),
             poster_url: "https://static.displate.com/857x1200/displate/2020-10-29/3cb96a6c646cfc21056e44d1fdda502f_e111735e11d842e683b77fd5a9f6f41d.jpg".into(),
         },
