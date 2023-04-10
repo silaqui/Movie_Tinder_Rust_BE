@@ -1,7 +1,7 @@
 use rocket::serde::Deserialize;
 use rocket::serde::Serialize;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(crate = "rocket::serde")]
 pub struct Movie {
     pub id: String,

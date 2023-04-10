@@ -4,7 +4,7 @@ use rocket::State;
 use crate::model::common::HitCount;
 use crate::service::user;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UserId(pub String);
 
 #[rocket::async_trait]

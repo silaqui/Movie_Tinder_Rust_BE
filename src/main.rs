@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicUsize;
 
 use crate::model::common::HitCount;
@@ -15,7 +16,7 @@ async fn main() {
     rocket::build()
         .mount(api::BASE, api::routes())
         .manage(HitCount(AtomicUsize::new(0)))
-        .manage(SessionManager::new())
+        .manage(Arc::new(Mutex::new(SessionManager::new())))
         .launch()
         .await
         .expect("Could not start server! Shutting down.");
