@@ -10,16 +10,16 @@ pub struct HitCount(pub AtomicUsize);
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct Vote {
+pub struct VoteDTO {
     pub result: VoteResult,
     pub movie_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct NextMovie {
+pub struct SessionStateDTO {
     pub session_id: String,
-    pub is_match: bool,
-    pub movie: Movie,
+    pub match_movie: Option<Movie>,
+    pub next_movie: Option<Movie>,
 }
 

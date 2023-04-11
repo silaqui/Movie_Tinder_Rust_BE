@@ -33,6 +33,10 @@ pub enum VoteResult {
     SKIP,
 }
 
+pub struct MatchMovie(pub Option<Movie>);
+
+pub struct NextMovie(pub Option<Movie>);
+
 impl SessionManager {
     pub fn new() -> Self {
         SessionManager {
@@ -77,17 +81,11 @@ impl SessionManager {
         };
     }
 
-    pub fn vote(&mut self, session_id: &String, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> (bool, Option<Movie>) {
+    pub fn vote(&mut self, session_id: &String, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> (MatchMovie, NextMovie) {
         if let Some(session) = self.sessions.iter_mut().find(|s| &s.id == session_id) {
-            log::info!("Found session");
-            log::info!("Users: {:?}" , session.users);
             let movie_vote_index = session.votes.iter().position(|mv| mv.movie.id == *movie_id);
 
-            if let Some(movie_vote) = session.votes.iter_mut().find(|mv| {
-                log::info!("Check {} with {}",mv.movie.id, *movie_id );
-                mv.movie.id == *movie_id
-            }) {
-                log::info!("Found movie");
+            if let Some(movie_vote) = session.votes.iter_mut().find(|mv| { mv.movie.id == *movie_id }) {
                 if !movie_vote.votes.contains_key(user_id) {
                     movie_vote.votes.insert(user_id.clone(), vote_result.clone());
                 }
@@ -97,23 +95,26 @@ impl SessionManager {
                 let all_users_voted = movie_vote.votes.len() == session.users.len();
                 let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
 
-                log::info!("all_users_voted {} | is_match {}",all_users_voted, is_match);
+                let match_movie = if all_users_voted && is_match {
+                    log::info!("Vote | Match | {:?} " , movie_vote.movie);
+                    Some(movie_vote.movie.clone())
+                } else { None };
 
-                return if all_users_voted && is_match {
-                    log::info!("Vote result: true / {:?} " , movie_vote.movie);
-                    (true, Some(movie_vote.movie.clone()))
-                } else {
-                    let current_index = movie_vote_index.unwrap();
-                    let next_index = current_index + 1;
-                    return if next_index >= session.votes.len() {
-                        log::info!("Vote result: false / None - No more movies");
-                        (false, None)
+                let current_index = movie_vote_index.unwrap();
+                let next_index = current_index + 1;
+
+                let next_movie = {
+                    if next_index >= session.votes.len() {
+                        log::info!("Vote | Next | None - No more movies");
+                        None
                     } else {
                         let next_movie = session.votes[next_index].movie.clone();
-                        log::info!("Vote result: false / {:?} " , next_movie);
-                        (false, Some(next_movie))
+                        log::info!("Vote | Next | {:?} " , next_movie);
+                        Some(next_movie)
                     }
-                }
+                };
+
+                return (MatchMovie(match_movie), NextMovie(next_movie));
             } else {
                 panic!("Invalid movie id.");
             }
