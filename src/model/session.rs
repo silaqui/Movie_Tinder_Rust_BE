@@ -17,7 +17,7 @@ pub struct SessionState {
     pub id: String,
     pub users: Vec<UserId>,
     pub votes: Vec<MovieVote>,
-    pub session_result: Option<Movie>,
+    pub session_match: Option<Movie>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,6 +37,8 @@ pub struct MatchMovie(pub Option<Movie>);
 
 pub struct NextMovie(pub Option<Movie>);
 
+pub struct SessionId(pub String);
+
 impl SessionManager {
     pub fn new() -> Self {
         SessionManager {
@@ -55,7 +57,7 @@ impl SessionManager {
                     votes: HashMap::new(),
                 }
             ).collect(),
-            session_result: None,
+            session_match: None,
         };
         log::info!("New session {:?}", new_session);
         self.sessions.push(new_session);
@@ -92,18 +94,20 @@ impl SessionManager {
 
                 log::info!("Votes : {:?}", movie_vote.votes);
 
-                let all_users_voted = movie_vote.votes.len() == session.users.len();
-                let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
+                if session.session_match == None {
+                    let all_users_voted = movie_vote.votes.len() == session.users.len();
+                    let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
 
-                let match_movie = if all_users_voted && is_match {
-                    log::info!("Vote | Match | {:?} " , movie_vote.movie);
-                    Some(movie_vote.movie.clone())
-                } else { None };
-
-                let current_index = movie_vote_index.unwrap();
-                let next_index = current_index + 1;
+                    if all_users_voted && is_match {
+                        log::info!("Vote | Match | {:?} " , movie_vote.movie);
+                        session.session_match = Some(movie_vote.movie.clone())
+                    };
+                }
 
                 let next_movie = {
+                    let current_index = movie_vote_index.unwrap();
+                    let next_index = current_index + 1;
+
                     if next_index >= session.votes.len() {
                         log::info!("Vote | Next | None - No more movies");
                         None
@@ -114,7 +118,7 @@ impl SessionManager {
                     }
                 };
 
-                return (MatchMovie(match_movie), NextMovie(next_movie));
+                return (MatchMovie(session.session_match.clone()), NextMovie(next_movie));
             } else {
                 panic!("Invalid movie id.");
             }
