@@ -83,7 +83,7 @@ pub fn get_movies() -> Vec<Movie> {
 }
 
 
-pub fn get_movie_details() -> MovieDetails {
+pub fn _get_movie_details() -> MovieDetails {
     MovieDetails {
         title: "The Shawshank Redemption".into(),
         position: "1".into(),
@@ -96,8 +96,4 @@ pub fn get_movie_details() -> MovieDetails {
         stars: vec!["Tim Robbins".into(), "Morgan Freeman".into(), "Bob Gunton".into(), "William Sadler".into()],
         poster_url: "".into(),
     }
-}
-
-pub fn get_movie_by_id(id: &String) -> Movie {
-    todo!()
 }

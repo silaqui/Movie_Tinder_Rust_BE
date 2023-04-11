@@ -67,8 +67,8 @@ impl SessionManager {
             Some(_) => {
                 let u = s.unwrap();
                 if !u.users.contains(user_id) {
+                    let _ = &u.users.push(user_id.clone());
                     log::info!("Joined session {:?}", u);
-                    &u.users.push(user_id.clone());
                 } else {
                     log::info!("Already in session {:?}", u);
                 }
@@ -79,36 +79,46 @@ impl SessionManager {
 
     pub fn vote(&mut self, session_id: &String, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> (bool, Option<Movie>) {
         if let Some(session) = self.sessions.iter_mut().find(|s| &s.id == session_id) {
+            log::info!("Found session");
+            log::info!("Users: {:?}" , session.users);
             let movie_vote_index = session.votes.iter().position(|mv| mv.movie.id == *movie_id);
 
-
-            if let Some(movie_vote) = session.votes.iter_mut().find(|mv| mv.movie.id == *movie_id) {
-                // Check if the user has already voted on this movie
+            if let Some(movie_vote) = session.votes.iter_mut().find(|mv| {
+                log::info!("Check {} with {}",mv.movie.id, *movie_id );
+                mv.movie.id == *movie_id
+            }) {
+                log::info!("Found movie");
                 if !movie_vote.votes.contains_key(user_id) {
                     movie_vote.votes.insert(user_id.clone(), vote_result.clone());
                 }
 
-                if movie_vote.votes.len() == session.users.len() {
-                    let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
+                log::info!("Votes : {:?}", movie_vote.votes);
 
-                    return if is_match {
-                        log::info!("Vote result: true / {:?} " , movie_vote.movie);
-                        (true, Some(movie_vote.movie.clone()))
+                let all_users_voted = movie_vote.votes.len() == session.users.len();
+                let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
+
+                log::info!("all_users_voted {} | is_match {}",all_users_voted, is_match);
+
+                return if all_users_voted && is_match {
+                    log::info!("Vote result: true / {:?} " , movie_vote.movie);
+                    (true, Some(movie_vote.movie.clone()))
+                } else {
+                    let current_index = movie_vote_index.unwrap();
+                    let next_index = current_index + 1;
+                    return if next_index >= session.votes.len() {
+                        log::info!("Vote result: false / None - No more movies");
+                        (false, None)
                     } else {
-                        let current_index = movie_vote_index.unwrap();
-
-                        let next_index = current_index + 1;
-
                         let next_movie = session.votes[next_index].movie.clone();
                         log::info!("Vote result: false / {:?} " , next_movie);
                         (false, Some(next_movie))
                     }
                 }
+            } else {
+                panic!("Invalid movie id.");
             }
-            panic!("Invalid movie id.")
         } else {
-            log::info!("Vote result: false / None ");
-            (false, None)
+            panic!("Invalid session id.");
         }
     }
 }
