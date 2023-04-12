@@ -1,4 +1,5 @@
-pub mod user_id;
-pub mod movie;
 pub mod common;
-pub mod session;
+pub mod hit_count;
+pub mod movie;
+pub mod session_id;
+pub mod user_id;

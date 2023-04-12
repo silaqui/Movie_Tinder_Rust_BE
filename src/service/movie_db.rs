@@ -1,8 +1,14 @@
-use std::mem::replace;
-
 use crate::model::movie::Movie;
 
-pub fn get_movies() -> Vec<Movie> {
+pub fn get_all_id() -> Vec<String> {
+    get_movies().iter().map(|m| m.id.clone()).collect()
+}
+
+pub fn get_by_id(movie_id: String) -> Option<Movie> {
+    get_movies().iter().find(|m| m.id == movie_id).map(|m| m.clone())
+}
+
+fn get_movies() -> Vec<Movie> {
     vec![
         Movie {
             id: "1".into(),
@@ -66,7 +72,7 @@ pub fn get_movies() -> Vec<Movie> {
             genres: vec!["Drama".into()],
             description: "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into much more.".into(),
             poster_url: "https://m.media-amazon.com/images/M/MV5BNDIzNDU0YzEtYzE5Ni00ZjlkLTk5ZjgtNjM3NWE4YzA3Nzk3XkEyXkFqcGdeQXVyMjUzOTY1NTc@._V1_.jpg".into(),
-        }
+        },
     ]
 }
 

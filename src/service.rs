@@ -1,4 +1,5 @@
-pub mod movie_db;
 pub mod api;
-pub mod user;
+pub mod movie_db;
+pub mod movie_list_generator;
 pub mod session_service;
+pub mod session_manager;

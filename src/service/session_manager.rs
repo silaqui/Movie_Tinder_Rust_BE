@@ -1,46 +1,32 @@
 use std::collections::HashMap;
-use std::fmt::Error;
 
-use rocket::http::ext::IntoCollection;
-use rocket::serde::Deserialize;
-use rocket::serde::Serialize;
-
-use crate::model::movie::Movie;
-use crate::model::session::VoteResult::WATCH;
+use crate::model::common::VoteResult;
+use crate::model::common::VoteResult::WATCH;
+use crate::model::session_id::SessionId;
 use crate::model::user_id::UserId;
-use crate::service::movie_db;
+use crate::service::movie_list_generator;
 
 pub struct SessionManager {
     sessions: Vec<SessionState>,
 }
 
 #[derive(Debug)]
-pub struct SessionState {
-    pub id: SessionId,
-    pub users: Vec<UserId>,
-    pub votes: Vec<MovieVote>,
-    pub session_match: Option<Movie>,
+struct SessionState {
+    id: SessionId,
+    users: Vec<UserId>,
+    votes: Vec<MovieVote>,
+    session_match: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct MovieVote {
-    pub movie: Movie,
-    pub votes: HashMap<UserId, VoteResult>,
+struct MovieVote {
+    movie_id: String,
+    votes: HashMap<UserId, VoteResult>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(crate = "rocket::serde")]
-pub enum VoteResult {
-    WATCH,
-    SKIP,
-}
-
-pub struct MatchMovie(pub Option<Movie>);
-
-pub struct NextMovie(pub Option<Movie>);
-
-#[derive(Debug, Clone, PartialEq, Copy)]
-pub struct SessionId(pub usize);
+type MovieId = String;
+type MatchMovie = Option<String>;
+type NextMovie = Option<String>;
 
 impl SessionManager {
     pub fn new() -> Self {
@@ -53,17 +39,17 @@ impl SessionManager {
         let id = self
             .sessions
             .last()
-            .map(|s| s.id.0)
-            .map(|n| SessionId(n + 1))
-            .unwrap_or(SessionId(1));
+            .map(|s| s.id)
+            .map(|n| (n + 1))
+            .unwrap_or(1);
 
         let session_id = id;
         let new_session = SessionState {
             id: session_id.clone(),
             users: Vec::from([user_id.clone()]),
-            votes: movie_db::get_movies().iter().map(
-                |m| MovieVote {
-                    movie: m.clone(),
+            votes: movie_list_generator::generate().iter().map(
+                |id| MovieVote {
+                    movie_id: id.clone(),
                     votes: HashMap::new(),
                 }
             ).collect(),
@@ -93,11 +79,20 @@ impl SessionManager {
         };
     }
 
-    pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> Result<(MatchMovie, NextMovie), &str> {
-        return if let Some(session) = self.sessions.iter_mut().find(|s| &s.id == session_id) {
-            let movie_vote_index = session.votes.iter().position(|mv| mv.movie.id == *movie_id);
+    pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &MovieId, vote_result: &VoteResult) -> Result<(MatchMovie, NextMovie), &str> {
+        return if let Some(session) = self
+            .sessions
+            .iter_mut()
+            .find(|s| &s.id == session_id) {
+            let movie_vote_index = session
+                .votes
+                .iter()
+                .position(|mv| mv.movie_id == *movie_id);
 
-            if let Some(movie_vote) = session.votes.iter_mut().find(|mv| { mv.movie.id == *movie_id }) {
+            if let Some(movie_vote) = session
+                .votes
+                .iter_mut()
+                .find(|mv| { mv.movie_id == *movie_id }) {
                 if !movie_vote.votes.contains_key(user_id) {
                     movie_vote.votes.insert(user_id.clone(), vote_result.clone());
                 }
@@ -109,8 +104,8 @@ impl SessionManager {
                     let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
 
                     if all_users_voted && is_match {
-                        log::info!("Vote | Match | {:?} " , movie_vote.movie);
-                        session.session_match = Some(movie_vote.movie.clone())
+                        log::info!("Vote | Match | {:?} " , movie_vote.movie_id);
+                        session.session_match = Some(movie_vote.movie_id.clone());
                     };
                 }
 
@@ -122,13 +117,13 @@ impl SessionManager {
                         log::info!("Vote | Next | None - No more movies");
                         None
                     } else {
-                        let next_movie = session.votes[next_index].movie.clone();
+                        let next_movie = session.votes[next_index].movie_id.clone();
                         log::info!("Vote | Next | {:?} " , next_movie);
                         Some(next_movie)
                     }
                 };
 
-                Ok((MatchMovie(session.session_match.clone()), NextMovie(next_movie)))
+                Ok((session.session_match.clone(), next_movie))
             } else {
                 Err("Invalid movie id.")
             }
@@ -137,10 +132,14 @@ impl SessionManager {
         };
     }
 
-    pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Option<Movie> {
+
+    pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Option<MovieId> {
         if let Some(session) = self.sessions.iter().find(|s| &s.id == session_id) {
-            if let Some(movie_vote) = session.votes.iter().find(|mv| { !mv.votes.contains_key(user_id) }) {
-                return Some(movie_vote.movie.clone());
+            if let Some(movie_vote) = session
+                .votes
+                .iter()
+                .find(|mv| { !mv.votes.contains_key(user_id) }) {
+                return Some(movie_vote.movie_id.clone());
             }
         }
         None

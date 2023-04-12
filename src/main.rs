@@ -4,9 +4,9 @@ extern crate rocket;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicUsize;
 
-use crate::model::common::HitCount;
-use crate::model::session::SessionManager;
+use crate::model::hit_count::HitCount;
 use crate::service::api;
+use crate::service::session_manager::SessionManager;
 
 mod service;
 mod model;

@@ -1,12 +1,7 @@
-use std::sync::atomic::AtomicUsize;
-
 use rocket::serde::Deserialize;
 use rocket::serde::Serialize;
 
 use crate::model::movie::Movie;
-use crate::model::session::VoteResult;
-
-pub struct HitCount(pub AtomicUsize);
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -23,3 +18,9 @@ pub struct SessionStateDTO {
     pub next_movie: Option<Movie>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(crate = "rocket::serde")]
+pub enum VoteResult {
+    WATCH,
+    SKIP,
+}
