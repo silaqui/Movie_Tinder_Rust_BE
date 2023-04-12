@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::fmt::Error;
 
+use rocket::http::ext::IntoCollection;
 use rocket::serde::Deserialize;
 use rocket::serde::Serialize;
 
@@ -14,7 +16,7 @@ pub struct SessionManager {
 
 #[derive(Debug)]
 pub struct SessionState {
-    pub id: String,
+    pub id: SessionId,
     pub users: Vec<UserId>,
     pub votes: Vec<MovieVote>,
     pub session_match: Option<Movie>,
@@ -37,7 +39,8 @@ pub struct MatchMovie(pub Option<Movie>);
 
 pub struct NextMovie(pub Option<Movie>);
 
-pub struct SessionId(pub String);
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub struct SessionId(pub usize);
 
 impl SessionManager {
     pub fn new() -> Self {
@@ -46,8 +49,15 @@ impl SessionManager {
         }
     }
 
-    pub fn create_session(&mut self, user_id: &UserId) -> String {
-        let session_id = String::from("1");
+    pub fn create_session(&mut self, user_id: &UserId) -> SessionId {
+        let id = self
+            .sessions
+            .last()
+            .map(|s| s.id.0)
+            .map(|n| SessionId(n + 1))
+            .unwrap_or(SessionId(1));
+
+        let session_id = id;
         let new_session = SessionState {
             id: session_id.clone(),
             users: Vec::from([user_id.clone()]),
@@ -65,7 +75,7 @@ impl SessionManager {
     }
 
 
-    pub fn join(&mut self, session_id: &String, user_id: &UserId) -> Option<&String> {
+    pub fn join(&mut self, session_id: &SessionId, user_id: &UserId) -> Option<&SessionId> {
         let s = self.sessions.iter_mut().find(|v| v.id == *session_id);
 
         return match s {
@@ -83,7 +93,7 @@ impl SessionManager {
         };
     }
 
-    pub fn vote(&mut self, session_id: &String, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> (MatchMovie, NextMovie) {
+    pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> Result<(MatchMovie, NextMovie), &str> {
         if let Some(session) = self.sessions.iter_mut().find(|s| &s.id == session_id) {
             let movie_vote_index = session.votes.iter().position(|mv| mv.movie.id == *movie_id);
 
@@ -118,12 +128,12 @@ impl SessionManager {
                     }
                 };
 
-                return (MatchMovie(session.session_match.clone()), NextMovie(next_movie));
+                return Ok((MatchMovie(session.session_match.clone()), NextMovie(next_movie)));
             } else {
-                panic!("Invalid movie id.");
+                return Err("Invalid movie id.");
             }
         } else {
-            panic!("Invalid session id.");
+            return Err("Invalid session id.");
         }
     }
 }
