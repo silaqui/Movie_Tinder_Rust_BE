@@ -22,15 +22,22 @@ pub fn start(user_id: &UserId, session_manager: &State<Arc<Mutex<SessionManager>
 
 pub fn join(user_id: &UserId, session_id: &usize, session_manager: &State<Arc<Mutex<SessionManager>>>) -> SessionStateDTO {
     let mut session_manager = session_manager.inner().lock().unwrap();
-    let session_id = session_manager.join(&SessionId(session_id.clone()), user_id).expect("Session not found");
 
-    let movie = movie_db::get_movie(0);
-
-    SessionStateDTO {
-        session_id: Some(session_id.0),
-        match_movie: None,
-        next_movie: Some(movie),
-    }
+    return match session_manager.join(&SessionId(session_id.clone()), user_id) {
+        None => SessionStateDTO {
+            session_id: None,
+            match_movie: None,
+            next_movie: None,
+        },
+        Some(_) => {
+            let movie = movie_db::get_movie(0);
+            SessionStateDTO {
+                session_id: Some(session_id.0),
+                match_movie: None,
+                next_movie: Some(movie),
+            }
+        }
+    };
 }
 
 pub fn vote(user_id: &UserId, session_id: &usize, vote: VoteDTO, session_manager: &State<Arc<Mutex<SessionManager>>>) -> SessionStateDTO {
