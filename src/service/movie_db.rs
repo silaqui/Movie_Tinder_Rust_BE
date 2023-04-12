@@ -1,4 +1,6 @@
-use crate::model::movie::{Movie, MovieDetails};
+use std::mem::replace;
+
+use crate::model::movie::Movie;
 
 pub fn get_movies() -> Vec<Movie> {
     vec![
@@ -68,18 +70,3 @@ pub fn get_movies() -> Vec<Movie> {
     ]
 }
 
-
-pub fn _get_movie_details() -> MovieDetails {
-    MovieDetails {
-        title: "The Shawshank Redemption".into(),
-        position: "1".into(),
-        year: 1994,
-        certificate: "R".into(),
-        runtime: "142".into(),
-        genre: vec!["Drama".into()],
-        description: "Over the course of several years, two convicts form a friendship, seeking consolation and, eventually, redemption through basic compassion.".into(),
-        director: vec!["Frank Darabont".into()],
-        stars: vec!["Tim Robbins".into(), "Morgan Freeman".into(), "Bob Gunton".into(), "William Sadler".into()],
-        poster_url: "".into(),
-    }
-}

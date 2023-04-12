@@ -94,7 +94,7 @@ impl SessionManager {
     }
 
     pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &String, vote_result: &VoteResult) -> Result<(MatchMovie, NextMovie), &str> {
-        if let Some(session) = self.sessions.iter_mut().find(|s| &s.id == session_id) {
+        return if let Some(session) = self.sessions.iter_mut().find(|s| &s.id == session_id) {
             let movie_vote_index = session.votes.iter().position(|mv| mv.movie.id == *movie_id);
 
             if let Some(movie_vote) = session.votes.iter_mut().find(|mv| { mv.movie.id == *movie_id }) {
@@ -128,13 +128,13 @@ impl SessionManager {
                     }
                 };
 
-                return Ok((MatchMovie(session.session_match.clone()), NextMovie(next_movie)));
+                Ok((MatchMovie(session.session_match.clone()), NextMovie(next_movie)))
             } else {
-                return Err("Invalid movie id.");
+                Err("Invalid movie id.")
             }
         } else {
-            return Err("Invalid session id.");
-        }
+            Err("Invalid session id.")
+        };
     }
 
     pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Option<Movie> {
