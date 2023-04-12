@@ -136,4 +136,13 @@ impl SessionManager {
             return Err("Invalid session id.");
         }
     }
+
+    pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Option<Movie> {
+        if let Some(session) = self.sessions.iter().find(|s| &s.id == session_id) {
+            if let Some(movie_vote) = session.votes.iter().find(|mv| { !mv.votes.contains_key(user_id) }) {
+                return Some(movie_vote.movie.clone());
+            }
+        }
+        None
+    }
 }
