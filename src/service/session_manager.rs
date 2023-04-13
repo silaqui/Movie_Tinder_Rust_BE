@@ -15,7 +15,6 @@ struct SessionState {
     id: SessionId,
     users: Vec<UserId>,
     votes: Vec<MovieVote>,
-    session_match: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -53,7 +52,6 @@ impl SessionManager {
                     votes: HashMap::new(),
                 }
             ).collect(),
-            session_match: None,
         };
         log::info!("New session {:?}", new_session);
         self.sessions.push(new_session);
@@ -99,15 +97,11 @@ impl SessionManager {
 
                 log::info!("Votes : {:?}", movie_vote.votes);
 
-                if session.session_match == None {
-                    let all_users_voted = movie_vote.votes.len() == session.users.len();
-                    let is_match = movie_vote.votes.iter().all(|v| { *v.1 == WATCH });
-
-                    if all_users_voted && is_match {
-                        log::info!("Vote | Match | {:?} " , movie_vote.movie_id);
-                        session.session_match = Some(movie_vote.movie_id.clone());
-                    };
-                }
+                let session_match = session.votes.iter().find(|movie| {
+                    let all_users_voted = movie.votes.len() == session.users.len();
+                    let is_match = movie.votes.iter().all(|v| { *v.1 == WATCH });
+                    all_users_voted && is_match
+                }).map(|mv| mv.movie_id.clone());
 
                 let next_movie = {
                     let current_index = movie_vote_index.unwrap();
@@ -123,7 +117,7 @@ impl SessionManager {
                     }
                 };
 
-                Ok((session.session_match.clone(), next_movie))
+                Ok((session_match, next_movie))
             } else {
                 Err("Invalid movie id.")
             }
