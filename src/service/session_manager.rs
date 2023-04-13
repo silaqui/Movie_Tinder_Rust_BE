@@ -25,6 +25,30 @@ struct MovieVote {
 
 type MovieId = String;
 
+impl SessionState {
+    pub fn new(id: SessionId, movies_ids: Vec<MovieId>) -> Self {
+        SessionState {
+            id,
+            users: Vec::new(),
+            votes: movies_ids.iter().map(
+                |id| MovieVote {
+                    movie_id: id.clone(),
+                    votes: HashMap::new(),
+                }
+            ).collect(),
+        }
+    }
+
+    pub fn add_user(&mut self, user_id: &UserId) {
+        if !self.users.contains(user_id) {
+            let _ = &self.users.push(user_id.clone());
+            log::info!("Joined session {:?}", self);
+        } else {
+            log::info!("Already in session {:?}", self);
+        }
+    }
+}
+
 impl SessionManager {
     pub fn new() -> Self {
         SessionManager {
@@ -33,24 +57,14 @@ impl SessionManager {
     }
 
     pub fn create_session(&mut self, user_id: &UserId) -> SessionId {
-        let id = self
+        let session_id = self
             .sessions
             .last()
-            .map(|s| s.id)
-            .map(|n| (n + 1))
+            .map(|s| s.id + 1)
             .unwrap_or(1);
 
-        let session_id = id;
-        let new_session = SessionState {
-            id: session_id.clone(),
-            users: Vec::from([user_id.clone()]),
-            votes: movie_list_generator::generate().iter().map(
-                |id| MovieVote {
-                    movie_id: id.clone(),
-                    votes: HashMap::new(),
-                }
-            ).collect(),
-        };
+        let mut new_session = SessionState::new(session_id, movie_list_generator::generate());
+        new_session.add_user(user_id);
         log::info!("New session {:?}", new_session);
         self.sessions.push(new_session);
         session_id
@@ -62,15 +76,9 @@ impl SessionManager {
 
         return match s {
             None => { None }
-            Some(_) => {
-                let u = s.unwrap();
-                if !u.users.contains(user_id) {
-                    let _ = &u.users.push(user_id.clone());
-                    log::info!("Joined session {:?}", u);
-                } else {
-                    log::info!("Already in session {:?}", u);
-                }
-                Some(&u.id)
+            Some(s) => {
+                s.add_user(user_id);
+                Some(&s.id)
             }
         };
     }
@@ -105,7 +113,7 @@ impl SessionManager {
                 let all_users_voted = movie.votes.len() == session.users.len();
                 let is_match = movie.votes.iter().all(|v| { *v.1 == WATCH });
                 all_users_voted && is_match
-            }).map(|mv| mv.movie_id.clone())
+            }).map(|mv| mv.movie_id.clone());
         }
         None
     }

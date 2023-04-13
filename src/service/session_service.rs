@@ -8,8 +8,8 @@ use crate::model::user_id::UserId;
 use crate::service::movie_db;
 use crate::service::session_manager::SessionManager;
 
-pub fn start(user_id: &UserId, session_manager: &State<Arc<Mutex<SessionManager>>>) -> SessionStateDTO {
-    let mut session_manager = session_manager.inner().lock().unwrap();
+pub fn start(user_id: &UserId, session_manager: &Arc<Mutex<SessionManager>>) -> SessionStateDTO {
+    let mut session_manager = session_manager.lock().unwrap();
     let session_id = session_manager.create_session(user_id);
     let movie = session_manager.get_first_un_voted(&session_id, &user_id);
     let movie = movie.map(|id| movie_db::get_by_id(id)).flatten();
@@ -21,8 +21,8 @@ pub fn start(user_id: &UserId, session_manager: &State<Arc<Mutex<SessionManager>
     }
 }
 
-pub fn join(user_id: &UserId, session_id: &SessionId, session_manager: &State<Arc<Mutex<SessionManager>>>) -> SessionStateDTO {
-    let mut session_manager = session_manager.inner().lock().unwrap();
+pub fn join(user_id: &UserId, session_id: &SessionId, session_manager: &Arc<Mutex<SessionManager>>) -> SessionStateDTO {
+    let mut session_manager = session_manager.lock().unwrap();
 
     return match session_manager.join(&session_id, user_id) {
         None => SessionStateDTO {
@@ -42,8 +42,8 @@ pub fn join(user_id: &UserId, session_id: &SessionId, session_manager: &State<Ar
     };
 }
 
-pub fn vote(user_id: &UserId, session_id: &SessionId, vote: VoteDTO, session_manager: &State<Arc<Mutex<SessionManager>>>) -> SessionStateDTO {
-    let mut session_manager = session_manager.inner().lock().unwrap();
+pub fn vote(user_id: &UserId, session_id: &SessionId, vote: VoteDTO, session_manager: &Arc<Mutex<SessionManager>>) -> SessionStateDTO {
+    let mut session_manager = session_manager.lock().unwrap();
 
     return match session_manager.vote(&session_id, user_id, &vote.movie_id, &vote.result) {
         Ok(_) => {
@@ -67,3 +67,26 @@ pub fn vote(user_id: &UserId, session_id: &SessionId, vote: VoteDTO, session_man
     };
 }
 
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use crate::model::user_id::UserId;
+    use crate::service::session_manager::SessionManager;
+
+    #[test]
+    fn test_start() {
+        let manager = Arc::new(Mutex::new(SessionManager::new()));
+
+        let user_id = UserId(String::from("guest_1"));
+
+        let session_state = super::start(&user_id, &manager);
+        assert_eq!(session_state.session_id, Some(1));
+
+        let session_state = super::start(&user_id, &manager);
+        assert_eq!(session_state.session_id, Some(2));
+
+        let session_state = super::start(&user_id, &manager);
+        assert_eq!(session_state.session_id, Some(3));
+    }
+}
