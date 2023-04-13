@@ -46,8 +46,11 @@ pub fn vote(user_id: &UserId, session_id: &SessionId, vote: VoteDTO, session_man
     let mut session_manager = session_manager.inner().lock().unwrap();
 
     return match session_manager.vote(&session_id, user_id, &vote.movie_id, &vote.result) {
-        Ok((match_movie, next_movie)) => {
-            let match_movie = match_movie.map(|id| movie_db::get_by_id(id)).flatten();
+        Ok(_) => {
+            let session_match = session_manager.get_session_match(session_id);
+            let next_movie = session_manager.get_first_un_voted(session_id, user_id);
+
+            let match_movie = session_match.map(|id| movie_db::get_by_id(id)).flatten();
             let next_movie = next_movie.map(|id| movie_db::get_by_id(id)).flatten();
 
             SessionStateDTO {

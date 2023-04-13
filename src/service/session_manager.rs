@@ -24,8 +24,6 @@ struct MovieVote {
 }
 
 type MovieId = String;
-type MatchMovie = Option<String>;
-type NextMovie = Option<String>;
 
 impl SessionManager {
     pub fn new() -> Self {
@@ -77,16 +75,11 @@ impl SessionManager {
         };
     }
 
-    pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &MovieId, vote_result: &VoteResult) -> Result<(MatchMovie, NextMovie), &str> {
+    pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &MovieId, vote_result: &VoteResult) -> Result<(), &str> {
         return if let Some(session) = self
             .sessions
             .iter_mut()
             .find(|s| &s.id == session_id) {
-            let movie_vote_index = session
-                .votes
-                .iter()
-                .position(|mv| mv.movie_id == *movie_id);
-
             if let Some(movie_vote) = session
                 .votes
                 .iter_mut()
@@ -97,27 +90,7 @@ impl SessionManager {
 
                 log::info!("Votes : {:?}", movie_vote.votes);
 
-                let session_match = session.votes.iter().find(|movie| {
-                    let all_users_voted = movie.votes.len() == session.users.len();
-                    let is_match = movie.votes.iter().all(|v| { *v.1 == WATCH });
-                    all_users_voted && is_match
-                }).map(|mv| mv.movie_id.clone());
-
-                let next_movie = {
-                    let current_index = movie_vote_index.unwrap();
-                    let next_index = current_index + 1;
-
-                    if next_index >= session.votes.len() {
-                        log::info!("Vote | Next | None - No more movies");
-                        None
-                    } else {
-                        let next_movie = session.votes[next_index].movie_id.clone();
-                        log::info!("Vote | Next | {:?} " , next_movie);
-                        Some(next_movie)
-                    }
-                };
-
-                Ok((session_match, next_movie))
+                Ok(())
             } else {
                 Err("Invalid movie id.")
             }
@@ -126,6 +99,16 @@ impl SessionManager {
         };
     }
 
+    pub fn get_session_match(&self, session_id: &SessionId) -> Option<MovieId> {
+        if let Some(session) = self.sessions.iter().find(|s| &s.id == session_id) {
+            return session.votes.iter().find(|movie| {
+                let all_users_voted = movie.votes.len() == session.users.len();
+                let is_match = movie.votes.iter().all(|v| { *v.1 == WATCH });
+                all_users_voted && is_match
+            }).map(|mv| mv.movie_id.clone())
+        }
+        None
+    }
 
     pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Option<MovieId> {
         if let Some(session) = self.sessions.iter().find(|s| &s.id == session_id) {
