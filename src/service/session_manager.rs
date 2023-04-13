@@ -113,13 +113,11 @@ impl SessionManager {
     }
 
     pub fn get_session_match(&self, session_id: &SessionId) -> Result<Option<MovieId>, &str> {
-        let s = self.find_session(session_id)?;
-        Ok(s.get_session_match())
+        Ok(self.find_session(session_id)?.get_session_match())
     }
 
     pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Result<Option<MovieId>, &str> {
-        let s = self.find_session(session_id)?;
-        Ok(s.get_first_un_voted(user_id))
+        Ok(self.find_session(session_id)?.get_first_un_voted(user_id))
     }
 
     fn find_session_mut(&mut self, session_id: &SessionId) -> Result<&mut SessionState, &str> {
@@ -134,5 +132,35 @@ impl SessionManager {
             None => Err("Invalid session_id"),
             Some(s) => Ok(s)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::model::user_id::UserId;
+    use crate::service::session_manager::SessionManager;
+
+    #[test]
+    fn session_manager_get_first_un_voted_returns_err() {
+        let sm = SessionManager::new();
+
+        let user_id = UserId(String::from("guest_1"));
+        let session_id = 0;
+
+        let actual = sm.get_first_un_voted(&session_id, &user_id);
+
+        assert_eq!(actual, Err("Invalid session_id"));
+    }
+
+    #[test]
+    fn session_manager_get_first_un_voted_returns_ok() {
+        let mut sm = SessionManager::new();
+
+        let user_id = UserId(String::from("guest_1"));
+        let session_id = sm.create_session(&user_id);
+
+        let actual = sm.get_first_un_voted(&session_id, &user_id);
+
+        assert_eq!(actual, Ok(Some("1".into())));
     }
 }
