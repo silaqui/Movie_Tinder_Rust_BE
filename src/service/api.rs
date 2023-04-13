@@ -32,3 +32,24 @@ fn vote(session_manager: &State<Arc<Mutex<SessionManager>>>, user_id: UserId, se
 pub fn routes() -> Vec<Route> {
     routes![start, join, vote ]
 }
+
+#[cfg(test)]
+mod tests {
+    use rocket::{http::Status, local::blocking::Client};
+
+    use crate::{model::common::SessionStateDTO, rocket};
+    use crate::model::user_id::USER_ID_FIELD_NAME;
+
+    #[test]
+    fn test_start() {
+        let client = Client::tracked(rocket()).expect("valid rocket instance");
+
+        let response = client.get("/api/start").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let user_id = response.cookies().get(USER_ID_FIELD_NAME).unwrap().value();
+        assert_eq!(user_id, "guest_1");
+        let body = response.into_json::<SessionStateDTO>().unwrap();
+        let id: Option<usize> = Some(1);
+        assert_eq!(body.session_id, id);
+    }
+}
