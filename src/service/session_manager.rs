@@ -47,6 +47,37 @@ impl SessionState {
             log::info!("Already in session {:?}", self);
         }
     }
+
+    pub fn vote(&mut self, user_id: &UserId, movie_id: &MovieId, vote_result: &VoteResult) -> Result<(), &str> {
+        if let Some(movie_vote) = self
+            .votes
+            .iter_mut()
+            .find(|mv| { mv.movie_id == *movie_id }) {
+            if !movie_vote.votes.contains_key(user_id) {
+                movie_vote.votes.insert(user_id.clone(), vote_result.clone());
+            }
+            log::info!("Votes : {:?}", movie_vote.votes);
+            Ok(())
+        } else {
+            Err("Invalid movie id.")
+        }
+    }
+
+    pub fn get_session_match(&self) -> Option<MovieId> {
+        return self.votes.iter().find(|movie| {
+            let all_users_voted = movie.votes.len() == self.users.len();
+            let is_match = movie.votes.iter().all(|v| { *v.1 == WATCH });
+            all_users_voted && is_match
+        }).map(|mv| mv.movie_id.clone());
+    }
+
+    pub fn get_first_un_voted(&self, user_id: &UserId) -> Option<MovieId> {
+        self
+            .votes
+            .iter()
+            .find(|mv| { !mv.votes.contains_key(user_id) })
+            .map(|mv| mv.movie_id.clone())
+    }
 }
 
 impl SessionManager {
@@ -71,62 +102,37 @@ impl SessionManager {
     }
 
 
-    pub fn join(&mut self, session_id: &SessionId, user_id: &UserId) -> Option<&SessionId> {
-        let s = self.sessions.iter_mut().find(|v| v.id == *session_id);
-
-        return match s {
-            None => { None }
-            Some(s) => {
-                s.add_user(user_id);
-                Some(&s.id)
-            }
-        };
+    pub fn join(&mut self, session_id: &SessionId, user_id: &UserId) -> Result<&SessionId, &str> {
+        let s = self.find_session_mut(session_id)?;
+        s.add_user(user_id);
+        Ok(&s.id)
     }
 
     pub fn vote(&mut self, session_id: &SessionId, user_id: &UserId, movie_id: &MovieId, vote_result: &VoteResult) -> Result<(), &str> {
-        return if let Some(session) = self
-            .sessions
-            .iter_mut()
-            .find(|s| &s.id == session_id) {
-            if let Some(movie_vote) = session
-                .votes
-                .iter_mut()
-                .find(|mv| { mv.movie_id == *movie_id }) {
-                if !movie_vote.votes.contains_key(user_id) {
-                    movie_vote.votes.insert(user_id.clone(), vote_result.clone());
-                }
-
-                log::info!("Votes : {:?}", movie_vote.votes);
-
-                Ok(())
-            } else {
-                Err("Invalid movie id.")
-            }
-        } else {
-            Err("Invalid session id.")
-        };
+        self.find_session_mut(session_id)?.vote(user_id, movie_id, vote_result)
     }
 
-    pub fn get_session_match(&self, session_id: &SessionId) -> Option<MovieId> {
-        if let Some(session) = self.sessions.iter().find(|s| &s.id == session_id) {
-            return session.votes.iter().find(|movie| {
-                let all_users_voted = movie.votes.len() == session.users.len();
-                let is_match = movie.votes.iter().all(|v| { *v.1 == WATCH });
-                all_users_voted && is_match
-            }).map(|mv| mv.movie_id.clone());
-        }
-        None
+    pub fn get_session_match(&self, session_id: &SessionId) -> Result<Option<MovieId>, &str> {
+        let s = self.find_session(session_id)?;
+        Ok(s.get_session_match())
     }
 
-    pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Option<MovieId> {
-        if let Some(session) = self.sessions.iter().find(|s| &s.id == session_id) {
-            if let Some(movie_vote) = session
-                .votes
-                .iter()
-                .find(|mv| { !mv.votes.contains_key(user_id) }) {
-                return Some(movie_vote.movie_id.clone());
-            }
+    pub fn get_first_un_voted(&self, session_id: &SessionId, user_id: &UserId) -> Result<Option<MovieId>, &str> {
+        let s = self.find_session(session_id)?;
+        Ok(s.get_first_un_voted(user_id))
+    }
+
+    fn find_session_mut(&mut self, session_id: &SessionId) -> Result<&mut SessionState, &str> {
+        match self.sessions.iter_mut().find(|s| &s.id == session_id) {
+            None => Err("Invalid session_id"),
+            Some(s) => Ok(s)
         }
-        None
+    }
+
+    fn find_session(&self, session_id: &SessionId) -> Result<&SessionState, &str> {
+        match self.sessions.iter().find(|s| &s.id == session_id) {
+            None => Err("Invalid session_id"),
+            Some(s) => Ok(s)
+        }
     }
 }
