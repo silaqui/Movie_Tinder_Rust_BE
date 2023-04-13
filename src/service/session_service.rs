@@ -23,11 +23,6 @@ pub fn join(user_id: &UserId, session_id: &SessionId, session_manager: &Arc<Mute
     let mut session_manager = session_manager.lock().unwrap();
 
     return match session_manager.join(&session_id, user_id) {
-        Err(_) => SessionStateDTO {
-            session_id: None,
-            match_movie: None,
-            next_movie: None,
-        },
         Ok(_) => {
             let movie = session_manager.get_first_un_voted(&session_id, &user_id).unwrap();
             let movie = movie.map(|id| movie_db::get_by_id(id)).flatten();
@@ -35,6 +30,14 @@ pub fn join(user_id: &UserId, session_id: &SessionId, session_manager: &Arc<Mute
                 session_id: Some(session_id.clone()),
                 match_movie: None,
                 next_movie: movie,
+            }
+        }
+        Err(e) => {
+            log::warn!("{}",e);
+            SessionStateDTO {
+                session_id: None,
+                match_movie: None,
+                next_movie: None,
             }
         }
     };
@@ -57,10 +60,13 @@ pub fn vote(user_id: &UserId, session_id: &SessionId, vote: VoteDTO, session_man
                 next_movie,
             }
         }
-        Err(_) => SessionStateDTO {
-            session_id: None,
-            match_movie: None,
-            next_movie: None,
+        Err(e) => {
+            log::warn!("{}",e);
+            SessionStateDTO {
+                session_id: None,
+                match_movie: None,
+                next_movie: None,
+            }
         }
     };
 }
